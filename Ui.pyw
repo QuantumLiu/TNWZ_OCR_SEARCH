@@ -17,6 +17,9 @@ from client import *
 
 
 class T_login(QtCore.QThread):
+    '''
+    登录线程
+    '''
     SIG_LOGIN=QtCore.pyqtSignal(bool,int)
     def __init__(self,uname,passwd):
         super(T_login,self).__init__()
@@ -29,6 +32,9 @@ class T_login(QtCore.QThread):
         self.SIG_LOGIN.emit(enable,number)
         
 class T_read(QtCore.QThread):
+    '''
+    OCR请求线程
+    '''
     SIG_SCREEN=QtCore.pyqtSignal(list)
     SIG_TYPE=QtCore.pyqtSignal(str)
     
@@ -46,7 +52,7 @@ class T_read(QtCore.QThread):
     def run(self):
         response,frame,bound,state,scale=None,None,None,None,None
         got_answer=False
-        while self.n<10:
+        while self.n<5:
             binary,gray,frame,scale=pull_screenshot()
             self.SIG_SCREEN.emit([frame])
             
@@ -181,13 +187,18 @@ class UIQA(object):
         self.pb_stop.clicked.connect(self.stop_auto)
         
     def start_login(self):
-        
+        '''
+        启动登录线程
+        '''
         self.uname,self.passwd=self.le_uname.text(),self.le_passwd.text()
         self.login_thread=T_login(self.uname,self.passwd)
-        self.login_thread.SIG_LOGIN.connect(self.finish_login)
+        self.login_thread.SIG_LOGIN.connect(self.finish_login)#发射登陆完成信号
         self.login_thread.start()
         
     def finish_login(self,enable,number):
+        '''
+        槽函数登录结束
+        '''
         self.enable=enable
         if not self.enable:
             QMessageBox.warning(self.dialog,'登录失败','尝试以\n用户名：{}\n密码：{}\n登录失败，请检查后重试！')
@@ -206,6 +217,9 @@ class UIQA(object):
         self.stop=True
         
     def start_read_screen(self):
+        '''
+        启动OCR线程
+        '''
         self.read_thread=T_read(self.uname,self.passwd)
         self.read_thread.SIG_SCREEN.connect(self._set_img)
 # =============================================================================
@@ -215,12 +229,16 @@ class UIQA(object):
 #         self.read_thread.SIG_RESULT.connect(self.get_answer)
 # =============================================================================
         self.read_thread.SIG_ANSWER.connect(self.tb_answer.setText)
-        self.read_thread.SIG_END.connect(self.re_read)
+        self.read_thread.SIG_END.connect(self.re_read)#发射ocr完成信号
         self.read_thread.start()
     
     def re_read(self):
+        '''
+        ocr完成后根据auto radio button，判断是否自动重读
+        '''
         if self.rb_auto.isChecked():
             self.start_read_screen()
+            
     def _cv2qimg(self,cvImg):
         '''
         将opencv的图片转换为QImage
